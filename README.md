@@ -52,7 +52,7 @@ npm run package
 打包产物会生成在：
 
 ```text
-dist/mac-arm64/工作断点Demo-录屏专用.app
+dist/mac-arm64/StillHere.app
 ```
 
 ## macOS 权限说明
@@ -82,7 +82,7 @@ src/shared/types.ts              共享类型
 如果希望普通用户直接下载使用，请在 GitHub Releases 中上传已经打包好的：
 
 ```text
-工作断点Demo-录屏专用.app.zip
+StillHere-macOS-arm64.zip
 ```
 
 普通用户下载后解压，右键打开 app，并按系统提示开启录屏权限。

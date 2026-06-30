@@ -1,5 +1,5 @@
 {
-  "name": "save-my-work",
+  "name": "stillhere",
   "version": "0.1.0",
   "description": "一个用于保存工作思路检查点的 macOS Electron 原型。",
   "main": "dist/main/main.js",
@@ -36,8 +36,8 @@
     "wait-on": "^8.0.1"
   },
   "build": {
-    "appId": "com.savemywork.recording.final",
-    "productName": "工作断点Demo-录屏专用",
+    "appId": "app.stillhere.desktop",
+    "productName": "StillHere",
     "files": [
       "dist/main/**/*",
       "dist/preload/**/*",
