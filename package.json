@@ -1,0 +1,54 @@
+{
+  "name": "save-my-work",
+  "version": "0.1.0",
+  "description": "一个用于保存工作思路检查点的 macOS Electron 原型。",
+  "main": "dist/main/main.js",
+  "type": "module",
+  "scripts": {
+    "dev": "concurrently -k \"npm:dev:renderer\" \"npm:dev:main\"",
+    "dev:renderer": "vite --host 127.0.0.1",
+    "dev:main": "tsc -p tsconfig.main.json --watch --preserveWatchOutput",
+    "open": "wait-on http://127.0.0.1:5173 file:dist/main/main.js file:dist/preload/preload.js && cross-env ELECTRON_ENABLE_LOGGING=1 VITE_DEV_SERVER_URL=http://127.0.0.1:5173 electron .",
+    "start": "cross-env ELECTRON_ENABLE_LOGGING=1 electron .",
+    "build": "tsc -p tsconfig.main.json && vite build",
+    "package": "npm run build && electron-builder --dir -c.electronDist=node_modules/electron/dist",
+    "typecheck": "tsc --noEmit && tsc -p tsconfig.main.json --noEmit"
+  },
+  "dependencies": {
+    "@react-three/fiber": "^9.2.0",
+    "@vitejs/plugin-react": "^4.6.0",
+    "electron-store": "^10.1.0",
+    "lucide-react": "^0.468.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "three": "^0.171.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "@types/react": "^19.0.2",
+    "@types/react-dom": "^19.0.2",
+    "concurrently": "^9.1.0",
+    "cross-env": "^7.0.3",
+    "electron": "^42.5.1",
+    "electron-builder": "^25.1.8",
+    "typescript": "^5.7.2",
+    "vite": "^6.0.5",
+    "wait-on": "^8.0.1"
+  },
+  "build": {
+    "appId": "com.savemywork.recording.final",
+    "productName": "工作断点Demo-录屏专用",
+    "files": [
+      "dist/main/**/*",
+      "dist/preload/**/*",
+      "dist/renderer/**/*",
+      "dist/shared/**/*",
+      "package.json",
+      "!dist/mac*/**/*",
+      "!dist/*.yml"
+    ],
+    "mac": {
+      "category": "public.app-category.productivity"
+    }
+  }
+}
