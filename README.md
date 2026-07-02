@@ -4,6 +4,8 @@ StillHere 是一个 macOS Electron 原型：为多任务并行场景设计的 AI
 
 它解决的问题不是“窗口在哪里”，而是人在被打断后重新回到工作时，如何快速找回刚才的上下文、判断和下一步。
 
+下载前请先打开产品手册查看产品介绍：[`stillhere-product-handbook.html`](https://github.com/Leveltea/STILL-HERE/blob/main/docs/stillhere-product-handbook.html)
+
 ## 当前能力
 
 - 桌面悬浮胶囊入口
