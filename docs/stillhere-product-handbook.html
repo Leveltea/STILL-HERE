@@ -1,0 +1,1113 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>StillHere | AI 工作现场恢复器</title>
+  <meta name="description" content="StillHere 是为多任务并行时代设计的 AI 工作现场恢复器。工作可以暂停，思路不用重启。" />
+  <style>
+    :root {
+      --ink: #101418;
+      --muted: #5d6670;
+      --quiet: #8a949e;
+      --line: rgba(16, 20, 24, 0.12);
+      --surface: rgba(255, 255, 255, 0.78);
+      --green: #2f776a;
+      --mint: #dff3eb;
+      --blue: #6f8fdd;
+      --gold: #d9b36f;
+      --dark: #0a0d12;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
+      color: var(--ink);
+      background: #f7f8f6;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      margin: 0;
+      overflow-x: hidden;
+      background:
+        linear-gradient(180deg, #f9faf8 0%, #edf4f0 36%, #f7f8f6 64%, #101418 100%);
+    }
+
+    a {
+      color: inherit;
+    }
+
+    .hero {
+      position: relative;
+      min-height: 220vh;
+      color: #f8fbf9;
+      background: #080b10;
+    }
+
+    .hero-stage {
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      overflow: hidden;
+      background:
+        radial-gradient(circle at 50% 40%, rgba(43, 87, 78, 0.22), transparent 42%),
+        linear-gradient(180deg, #020305, #080b10 58%, #101418);
+    }
+
+    .hero-stage::before {
+      position: absolute;
+      inset: 0;
+      background:
+        linear-gradient(180deg, rgba(8, 11, 16, 0.18), rgba(8, 11, 16, 0.72)),
+        url("https://images.unsplash.com/photo-1497366811353-6870744d04b2?auto=format&fit=crop&w=2400&q=82") center / cover;
+      content: "";
+      opacity: var(--hero-photo-opacity, 0);
+      transform: scale(calc(1.08 - var(--hero-photo-opacity, 0) * 0.05));
+      transition: opacity 80ms linear, transform 80ms linear;
+      will-change: opacity, transform;
+    }
+
+    .hero-stage::after {
+      position: absolute;
+      inset: 0;
+      background:
+        radial-gradient(circle at 50% 45%, transparent 0 32%, rgba(0, 0, 0, 0.24) 68%, rgba(0, 0, 0, 0.72) 100%),
+        linear-gradient(90deg, rgba(0, 0, 0, 0.58), transparent 32%, transparent 70%, rgba(0, 0, 0, 0.42));
+      content: "";
+      pointer-events: none;
+    }
+
+    #particle-canvas {
+      position: absolute;
+      inset: 0;
+      z-index: 3;
+      width: 100%;
+      height: 100%;
+      mix-blend-mode: screen;
+    }
+
+    .nav {
+      position: fixed;
+      top: 22px;
+      left: 50%;
+      z-index: 30;
+      width: min(1120px, calc(100% - 36px));
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 18px;
+      padding: 10px 10px 10px 18px;
+      border: 1px solid rgba(255, 255, 255, 0.22);
+      border-radius: 999px;
+      color: rgba(255, 255, 255, 0.86);
+      background: rgba(8, 11, 16, 0.42);
+      backdrop-filter: blur(22px);
+      transform: translateX(-50%);
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 13px;
+      font-weight: 760;
+      letter-spacing: 0;
+    }
+
+    .brand-mark {
+      width: 26px;
+      height: 26px;
+      display: grid;
+      place-items: center;
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      border-radius: 50%;
+      background: rgba(223, 243, 235, 0.16);
+      box-shadow: inset 0 0 14px rgba(223, 243, 235, 0.22);
+    }
+
+    .brand-mark::before {
+      width: 8px;
+      height: 8px;
+      border: 2px solid #dff3eb;
+      border-radius: 50%;
+      content: "";
+    }
+
+    .nav-links {
+      display: flex;
+      gap: 4px;
+    }
+
+    .nav-links a {
+      padding: 8px 12px;
+      border-radius: 999px;
+      color: rgba(255, 255, 255, 0.74);
+      font-size: 12px;
+      text-decoration: none;
+    }
+
+    .nav-links a:hover {
+      color: #fff;
+      background: rgba(255, 255, 255, 0.12);
+    }
+
+    .hero-copy {
+      position: absolute;
+      inset: 0;
+      z-index: 4;
+      width: min(1120px, calc(100% - 40px));
+      margin: 0 auto;
+      display: grid;
+      align-content: center;
+      padding-top: 5vh;
+      pointer-events: none;
+    }
+
+    .hero-copy > * {
+      opacity: var(--hero-copy-opacity, 0);
+      transform: translateY(calc((1 - var(--hero-copy-opacity, 0)) * 18px));
+      transition: opacity 80ms linear, transform 80ms linear;
+    }
+
+    .eyebrow {
+      margin: 0 0 16px;
+      color: rgba(223, 243, 235, 0.76);
+      font-size: 13px;
+      font-weight: 760;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .hero h1 {
+      max-width: 10ch;
+      margin: 0;
+      font-size: clamp(72px, 13vw, 190px);
+      line-height: 0.86;
+      letter-spacing: 0;
+    }
+
+    .hero-subtitle {
+      max-width: 720px;
+      margin: 28px 0 0;
+      color: rgba(255, 255, 255, 0.78);
+      font-size: clamp(20px, 3vw, 38px);
+      font-weight: 760;
+      line-height: 1.18;
+    }
+
+    .hero-lede {
+      max-width: 600px;
+      margin: 22px 0 0;
+      color: rgba(255, 255, 255, 0.68);
+      font-size: clamp(15px, 1.55vw, 19px);
+      line-height: 1.75;
+    }
+
+    main {
+      position: relative;
+      z-index: 2;
+      background: #f7f8f6;
+    }
+
+    .section {
+      width: min(1120px, calc(100% - 40px));
+      margin: 0 auto;
+      padding: 116px 0;
+    }
+
+    .section.compact {
+      padding: 82px 0;
+    }
+
+    .section-title {
+      max-width: 860px;
+      margin: 0;
+      font-size: clamp(36px, 6vw, 78px);
+      line-height: 1.03;
+      letter-spacing: 0;
+    }
+
+    .section-lede {
+      max-width: 720px;
+      margin: 24px 0 0;
+      color: var(--muted);
+      font-size: clamp(17px, 2vw, 23px);
+      line-height: 1.7;
+    }
+
+    .pain-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1.08fr) minmax(320px, 0.92fr);
+      gap: 34px;
+      align-items: center;
+      margin-top: 62px;
+    }
+
+    .glass-panel {
+      position: relative;
+      overflow: hidden;
+      border: 1px solid rgba(16, 20, 24, 0.1);
+      border-radius: 28px;
+      background: rgba(255, 255, 255, 0.68);
+      box-shadow: 0 28px 80px rgba(40, 61, 55, 0.12);
+      backdrop-filter: blur(18px);
+    }
+
+    .task-stack {
+      padding: 24px;
+      min-height: 540px;
+    }
+
+    .floating-window {
+      position: absolute;
+      width: 58%;
+      min-height: 132px;
+      padding: 18px;
+      border: 1px solid rgba(16, 20, 24, 0.1);
+      border-radius: 18px;
+      background: rgba(255, 255, 255, 0.86);
+      box-shadow: 0 18px 50px rgba(16, 20, 24, 0.12);
+      transform: translate3d(0, calc(var(--parallax, 0) * var(--speed, 0px)), 0) rotate(var(--angle, 0deg));
+    }
+
+    .floating-window:nth-child(1) {
+      top: 32px;
+      left: 28px;
+      --speed: -44px;
+      --angle: -2deg;
+    }
+
+    .floating-window:nth-child(2) {
+      top: 166px;
+      right: 26px;
+      --speed: 32px;
+      --angle: 2.2deg;
+    }
+
+    .floating-window:nth-child(3) {
+      top: 308px;
+      left: 62px;
+      --speed: -20px;
+      --angle: 1deg;
+    }
+
+    .floating-window:nth-child(4) {
+      bottom: 36px;
+      right: 54px;
+      --speed: 48px;
+      --angle: -1.4deg;
+    }
+
+    .window-top {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      margin-bottom: 16px;
+    }
+
+    .dot {
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      background: #e65c55;
+    }
+
+    .dot:nth-child(2) {
+      background: #edbf4f;
+    }
+
+    .dot:nth-child(3) {
+      background: #52b86b;
+    }
+
+    .window-name {
+      margin-left: 7px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 760;
+    }
+
+    .floating-window strong {
+      display: block;
+      margin-bottom: 8px;
+      font-size: 16px;
+      line-height: 1.25;
+    }
+
+    .floating-window p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.55;
+    }
+
+    .callout {
+      padding: 34px;
+      background:
+        linear-gradient(135deg, rgba(223, 243, 235, 0.86), rgba(255, 255, 255, 0.78)),
+        url("https://images.unsplash.com/photo-1519389950473-47ba0277781c?auto=format&fit=crop&w=1600&q=82") center / cover;
+      background-blend-mode: screen, normal;
+    }
+
+    .callout h3 {
+      margin: 0 0 20px;
+      font-size: clamp(28px, 4vw, 48px);
+      line-height: 1.1;
+    }
+
+    .callout p {
+      color: #3d4944;
+      font-size: 17px;
+      line-height: 1.75;
+    }
+
+    .quote-line {
+      margin-top: 34px;
+      padding-top: 24px;
+      border-top: 1px solid rgba(16, 20, 24, 0.12);
+      font-size: 22px;
+      font-weight: 780;
+      line-height: 1.35;
+    }
+
+    .dark-band {
+      position: relative;
+      overflow: hidden;
+      color: #eef4f1;
+      background: #101418;
+    }
+
+    .dark-band::before {
+      position: absolute;
+      inset: -18% -8% auto;
+      height: 520px;
+      background: radial-gradient(circle at 50% 50%, rgba(47, 119, 106, 0.32), transparent 64%);
+      content: "";
+      pointer-events: none;
+    }
+
+    .value-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 14px;
+      margin-top: 54px;
+    }
+
+    .value-card {
+      min-height: 260px;
+      padding: 22px;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 22px;
+      background: rgba(255, 255, 255, 0.055);
+      backdrop-filter: blur(18px);
+      transform: translateY(calc(var(--parallax, 0) * var(--lift, 0px)));
+    }
+
+    .value-card:nth-child(1) { --lift: -18px; }
+    .value-card:nth-child(2) { --lift: 22px; margin-top: 38px; }
+    .value-card:nth-child(3) { --lift: -28px; margin-top: 12px; }
+    .value-card:nth-child(4) { --lift: 18px; margin-top: 62px; }
+
+    .value-card span {
+      color: rgba(223, 243, 235, 0.68);
+      font-size: 12px;
+      font-weight: 780;
+    }
+
+    .value-card h3 {
+      margin: 18px 0 12px;
+      font-size: 24px;
+      line-height: 1.14;
+    }
+
+    .value-card p {
+      margin: 0;
+      color: rgba(238, 244, 241, 0.68);
+      font-size: 14px;
+      line-height: 1.75;
+    }
+
+    .demo-layout {
+      display: grid;
+      grid-template-columns: minmax(320px, 0.82fr) minmax(0, 1.18fr);
+      gap: 42px;
+      align-items: start;
+      margin-top: 58px;
+    }
+
+    .demo-sticky {
+      position: sticky;
+      top: 112px;
+      overflow: hidden;
+      min-height: 620px;
+      border-radius: 30px;
+      background:
+        linear-gradient(180deg, rgba(12, 16, 21, 0.12), rgba(12, 16, 21, 0.72)),
+        url("https://images.unsplash.com/photo-1531297484001-80022131f5a1?auto=format&fit=crop&w=1600&q=82") center / cover;
+      box-shadow: 0 28px 80px rgba(16, 20, 24, 0.18);
+    }
+
+    .demo-device {
+      position: absolute;
+      left: 26px;
+      right: 26px;
+      bottom: 26px;
+      padding: 18px;
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      border-radius: 22px;
+      color: #f8fbf9;
+      background: rgba(8, 11, 16, 0.58);
+      backdrop-filter: blur(20px);
+    }
+
+    .demo-device h3 {
+      margin: 0 0 14px;
+      font-size: 26px;
+    }
+
+    .mini-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .mini-window {
+      min-height: 78px;
+      padding: 11px;
+      border-radius: 14px;
+      color: rgba(255, 255, 255, 0.76);
+      background: rgba(255, 255, 255, 0.1);
+      font-size: 12px;
+      line-height: 1.4;
+    }
+
+    .demo-steps {
+      display: grid;
+      gap: 18px;
+    }
+
+    .step-card {
+      padding: 26px;
+      border: 1px solid var(--line);
+      border-radius: 24px;
+      background: rgba(255, 255, 255, 0.72);
+      box-shadow: 0 18px 50px rgba(16, 20, 24, 0.08);
+      transform: translateX(calc((1 - var(--visible, 1)) * 24px));
+      opacity: calc(0.42 + var(--visible, 1) * 0.58);
+      transition: opacity 180ms ease, transform 180ms ease;
+    }
+
+    .step-card span {
+      color: var(--green);
+      font-size: 12px;
+      font-weight: 800;
+    }
+
+    .step-card h3 {
+      margin: 10px 0 12px;
+      font-size: 26px;
+      line-height: 1.2;
+    }
+
+    .step-card p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 15px;
+      line-height: 1.75;
+    }
+
+    .comparison {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 16px;
+      margin-top: 52px;
+    }
+
+    .compare-card {
+      min-height: 260px;
+      padding: 24px;
+      border: 1px solid rgba(16, 20, 24, 0.1);
+      border-radius: 24px;
+      background: rgba(255, 255, 255, 0.72);
+    }
+
+    .compare-card.is-primary {
+      color: #eef4f1;
+      background:
+        linear-gradient(145deg, rgba(47, 119, 106, 0.95), rgba(14, 25, 27, 0.96)),
+        url("https://images.unsplash.com/photo-1483058712412-4245e9b90334?auto=format&fit=crop&w=1400&q=82") center / cover;
+      background-blend-mode: multiply, normal;
+    }
+
+    .compare-card h3 {
+      margin: 0 0 20px;
+      font-size: 24px;
+    }
+
+    .compare-card p {
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.75;
+    }
+
+    .compare-card.is-primary p {
+      color: rgba(238, 244, 241, 0.78);
+    }
+
+    .vision {
+      min-height: 94vh;
+      display: grid;
+      align-items: center;
+      color: #f8fbf9;
+      background:
+        linear-gradient(180deg, rgba(16, 20, 24, 0.38), rgba(16, 20, 24, 0.92)),
+        url("https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=2400&q=82") center / cover fixed;
+    }
+
+    .vision-inner {
+      width: min(1120px, calc(100% - 40px));
+      margin: 0 auto;
+    }
+
+    .vision h2 {
+      max-width: 900px;
+      margin: 0;
+      font-size: clamp(48px, 8vw, 112px);
+      line-height: 0.98;
+    }
+
+    .vision p {
+      max-width: 680px;
+      margin: 28px 0 0;
+      color: rgba(255, 255, 255, 0.72);
+      font-size: clamp(18px, 2vw, 24px);
+      line-height: 1.7;
+    }
+
+    .footer {
+      padding: 34px 0;
+      color: rgba(255, 255, 255, 0.55);
+      background: #101418;
+    }
+
+    .footer-inner {
+      width: min(1120px, calc(100% - 40px));
+      margin: 0 auto;
+      display: flex;
+      justify-content: space-between;
+      gap: 18px;
+      font-size: 12px;
+    }
+
+    .footer a {
+      color: rgba(255, 255, 255, 0.7);
+    }
+
+    @media (max-width: 900px) {
+      .nav-links {
+        display: none;
+      }
+
+      .pain-grid,
+      .demo-layout,
+      .comparison {
+        grid-template-columns: 1fr;
+      }
+
+      .value-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .demo-sticky {
+        position: relative;
+        top: auto;
+      }
+    }
+
+    @media (max-width: 640px) {
+      .section {
+        width: min(100% - 28px, 1120px);
+        padding: 78px 0;
+      }
+
+      .hero-copy {
+        width: min(100% - 28px, 1120px);
+      }
+
+      .hero h1 {
+        font-size: 70px;
+      }
+
+      .value-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .value-card {
+        min-height: 210px;
+        margin-top: 0 !important;
+      }
+
+      .floating-window {
+        width: 74%;
+      }
+
+      .task-stack {
+        min-height: 620px;
+      }
+
+      .footer-inner {
+        display: grid;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *,
+      *::before,
+      *::after {
+        animation-duration: 1ms !important;
+        scroll-behavior: auto !important;
+        transition-duration: 1ms !important;
+      }
+    }
+  </style>
+</head>
+<body>
+  <nav class="nav" aria-label="页面导航">
+    <div class="brand">
+      <span class="brand-mark" aria-hidden="true"></span>
+      <span>StillHere</span>
+    </div>
+    <div class="nav-links">
+      <a href="#problem">痛点</a>
+      <a href="#value">价值</a>
+      <a href="#demo">Demo 流程</a>
+      <a href="#vision">愿景</a>
+    </div>
+  </nav>
+
+  <header class="hero">
+    <div class="hero-stage">
+      <canvas id="particle-canvas" aria-hidden="true"></canvas>
+      <div class="hero-copy">
+        <p class="eyebrow">AI WORK MEMORY LAYER</p>
+        <h1>StillHere</h1>
+        <p class="hero-subtitle">工作可以暂停，思路不用重启。</p>
+        <p class="hero-lede">
+          为多任务并行时代设计的 AI 工作现场恢复器。它在你被打断时保存窗口、上下文、判断和下一步，让你回来后不用重新加载整个人。
+        </p>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <section class="section" id="problem">
+      <p class="eyebrow" style="color: var(--green)">THE REAL PROBLEM</p>
+      <h2 class="section-title">多线任务让人脑袋爆炸，但工作没有恢复按钮。</h2>
+      <p class="section-lede">
+        今天的知识工作不是一条线，而是一团线。你一边看文档，一边等群消息，一边问 AI，一边查接口，一边被临时任务打断。窗口都还在，但你的判断散落在窗口之间。
+      </p>
+
+      <div class="pain-grid">
+        <div class="glass-panel task-stack">
+          <article class="floating-window parallax-item">
+            <div class="window-top"><i class="dot"></i><i class="dot"></i><i class="dot"></i><span class="window-name">Notion</span></div>
+            <strong>需求、会议记录、接口问题清单</strong>
+            <p>你知道它重要，但回来时不一定记得它和下一步有什么关系。</p>
+          </article>
+          <article class="floating-window parallax-item">
+            <div class="window-top"><i class="dot"></i><i class="dot"></i><i class="dot"></i><span class="window-name">钉钉</span></div>
+            <strong>团队讨论、临时反馈、待确认对象</strong>
+            <p>谁刚才说了关键线索？你本来要追问谁？很快就混在消息流里。</p>
+          </article>
+          <article class="floating-window parallax-item">
+            <div class="window-top"><i class="dot"></i><i class="dot"></i><i class="dot"></i><span class="window-name">Claude</span></div>
+            <strong>AI 辅助分析与表达判断</strong>
+            <p>AI 给过很多建议，但你采纳了哪一个、为什么采纳，常常没有被保存。</p>
+          </article>
+          <article class="floating-window parallax-item">
+            <div class="window-top"><i class="dot"></i><i class="dot"></i><i class="dot"></i><span class="window-name">Terminal</span></div>
+            <strong>调试、推演、和 AI 对话</strong>
+            <p>工程现场的状态最容易被打断，也最难在回来后完整复原。</p>
+          </article>
+        </div>
+
+        <aside class="glass-panel callout parallax-item">
+          <h3>真正消耗人的，不是打开文件。</h3>
+          <p>
+            是每次切回来，都要重新问自己：我刚才做到哪了？哪个窗口是主线？哪个只是参考？我已经排除了什么？下一步原本要做什么？
+          </p>
+          <div class="quote-line">
+            StillHere 要解决的，是上下文切换后的认知重启。
+          </div>
+        </aside>
+      </div>
+    </section>
+
+    <section class="dark-band" id="value">
+      <div class="section">
+        <p class="eyebrow">WHAT STILLHERE DOES</p>
+        <h2 class="section-title">它保存的不是窗口，是你离开前的判断。</h2>
+        <p class="section-lede" style="color: rgba(238, 244, 241, 0.68)">
+          StillHere 把散落在文档、聊天、AI 和终端里的工作状态，压缩成一个可以恢复的 AI 检查点。
+        </p>
+
+        <div class="value-grid">
+          <article class="value-card parallax-item">
+            <span>01</span>
+            <h3>捕捉现场</h3>
+            <p>扫描当前打开的关键窗口，先把复杂现场收住，不要求用户停下来手动整理。</p>
+          </article>
+          <article class="value-card parallax-item">
+            <span>02</span>
+            <h3>理解角色</h3>
+            <p>识别每个窗口在任务里的作用：资料、沟通、AI 辅助、调试、参考。</p>
+          </article>
+          <article class="value-card parallax-item">
+            <span>03</span>
+            <h3>压缩上下文</h3>
+            <p>把当前任务、已推进事项、关键证据和卡点提炼成可读的检查点。</p>
+          </article>
+          <article class="value-card parallax-item">
+            <span>04</span>
+            <h3>回到下一步</h3>
+            <p>恢复时先告诉你“刚才判断到哪里”，再给出马上能执行的下一步。</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="demo">
+      <p class="eyebrow" style="color: var(--green)">DEMO FLOW</p>
+      <h2 class="section-title">从混乱现场，到清晰下一步。</h2>
+      <p class="section-lede">
+        Demo 展示一个典型的多线工作现场：用户同时处理项目文档、团队沟通、AI 辅助分析和终端推演，然后用 StillHere 保存并恢复这一刻。
+      </p>
+
+      <div class="demo-layout">
+        <div class="demo-sticky parallax-item">
+          <div class="demo-device">
+            <h3>当前工作现场</h3>
+            <div class="mini-grid">
+              <div class="mini-window">Notion<br />TWIG API 问题清单</div>
+              <div class="mini-window">钉钉<br />VPP 常务会</div>
+              <div class="mini-window">Claude<br />对外说明校对</div>
+              <div class="mini-window">Terminal<br />AI 推演与排查</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="demo-steps">
+          <article class="step-card reveal-step">
+            <span>STEP 1</span>
+            <h3>扫描当前窗口</h3>
+            <p>用户打开 StillHere。它识别桌面上正在参与当前工作的窗口，而不是让用户从零描述自己在做什么。</p>
+          </article>
+          <article class="step-card reveal-step">
+            <span>STEP 2</span>
+            <h3>一键添加工作现场</h3>
+            <p>用户点击全部添加，把 Notion、钉钉、Claude、Terminal 一次性收进当前检查点。</p>
+          </article>
+          <article class="step-card reveal-step">
+            <span>STEP 3</span>
+            <h3>AI 按窗口识别上下文</h3>
+            <p>Notion 是问题清单，钉钉是沟通线索，Claude 是辅助判断，Terminal 是推演过程。每个窗口都被解释成任务的一部分。</p>
+          </article>
+          <article class="step-card reveal-step">
+            <span>STEP 4</span>
+            <h3>生成可恢复检查点</h3>
+            <p>StillHere 提炼当前任务、已推进事项、卡点和回来第一步，把脑内状态变成可继续的记录。</p>
+          </article>
+          <article class="step-card reveal-step">
+            <span>STEP 5</span>
+            <h3>从检查点库恢复</h3>
+            <p>用户回来后，不是面对一堆窗口，而是先看到“你刚才判断到哪里”和“下一步该做什么”。</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="section compact">
+      <p class="eyebrow" style="color: var(--green)">NOT ANOTHER NOTE APP</p>
+      <h2 class="section-title">备忘录提醒你有事要做。StillHere 帮你恢复为什么要这么做。</h2>
+
+      <div class="comparison">
+        <article class="compare-card">
+          <h3>不是备忘录</h3>
+          <p>备忘录依赖人手写，而人被打断时最缺的恰恰是组织语言的余裕。</p>
+        </article>
+        <article class="compare-card">
+          <h3>不是窗口管理器</h3>
+          <p>窗口管理器只知道打开了什么，不知道这些窗口和当前任务的关系。</p>
+        </article>
+        <article class="compare-card is-primary">
+          <h3>是工作状态缓存</h3>
+          <p>StillHere 保存当前任务、关键上下文、卡点和下一步，帮人从认知中断里回来。</p>
+        </article>
+      </div>
+    </section>
+
+    <section class="vision" id="vision">
+      <div class="vision-inner">
+        <p class="eyebrow">VISION</p>
+        <h2>每个人都应该有一个工作记忆层。</h2>
+        <p>
+          它知道你刚才在推进什么，哪些信息影响了你的判断，也知道你下一步原本要做什么。当工作被打断，它帮你按下暂停；当你回来，它帮你接上思路。
+        </p>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+      <span>StillHere | AI 工作现场恢复器</span>
+      <span>图片来自 Unsplash：<a href="https://unsplash.com" target="_blank" rel="noreferrer">unsplash.com</a></span>
+    </div>
+  </footer>
+
+  <script>
+    const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
+    const lerp = (a, b, t) => a + (b - a) * t;
+
+    class ParticleField {
+      constructor(canvas) {
+        this.canvas = canvas;
+        this.gl = canvas.getContext("webgl", { alpha: true, antialias: true });
+        this.count = 9000;
+        this.scroll = 0;
+        this.time = 0;
+        this.dpr = Math.min(window.devicePixelRatio || 1, 2);
+        this.positions = new Float32Array(this.count * 2);
+        this.targets = new Float32Array(this.count * 2);
+        this.finalTargets = new Float32Array(this.count * 2);
+        this.seeds = new Float32Array(this.count * 4);
+        this.current = new Float32Array(this.count * 2);
+        this.init();
+      }
+
+      init() {
+        if (!this.gl) return;
+        this.createProgram();
+        this.resize();
+        this.createParticles();
+        window.addEventListener("resize", () => {
+          this.resize();
+          this.createParticles();
+        });
+        this.animate();
+      }
+
+      createProgram() {
+        const gl = this.gl;
+        const vertex = `
+          attribute vec2 a_position;
+          attribute vec4 a_seed;
+          uniform float u_time;
+          uniform float u_scroll;
+          uniform vec2 u_resolution;
+          varying float v_alpha;
+          void main() {
+            vec2 pos = a_position;
+            float drift = sin(u_time * (0.35 + a_seed.z) + a_seed.x * 6.283) * 0.018;
+            float breathe = cos(u_time * (0.25 + a_seed.w) + a_seed.y * 6.283) * 0.014;
+            pos += vec2(drift, breathe) * (1.0 - u_scroll);
+            gl_Position = vec4(pos, 0.0, 1.0);
+            gl_PointSize = mix(1.15, 1.9, u_scroll) * (0.8 + a_seed.z * 0.8);
+            v_alpha = mix(0.18, 0.92, u_scroll) * (0.55 + a_seed.w * 0.45);
+          }
+        `;
+        const fragment = `
+          precision mediump float;
+          varying float v_alpha;
+          void main() {
+            vec2 uv = gl_PointCoord - 0.5;
+            float d = length(uv);
+            float glow = smoothstep(0.5, 0.05, d);
+            vec3 mint = vec3(0.72, 1.0, 0.88);
+            vec3 blue = vec3(0.46, 0.62, 1.0);
+            vec3 color = mix(mint, blue, d * 0.75);
+            gl_FragColor = vec4(color, glow * v_alpha);
+          }
+        `;
+        const vs = this.shader(gl.VERTEX_SHADER, vertex);
+        const fs = this.shader(gl.FRAGMENT_SHADER, fragment);
+        this.program = gl.createProgram();
+        gl.attachShader(this.program, vs);
+        gl.attachShader(this.program, fs);
+        gl.linkProgram(this.program);
+        gl.useProgram(this.program);
+
+        this.positionBuffer = gl.createBuffer();
+        this.seedBuffer = gl.createBuffer();
+        this.positionLoc = gl.getAttribLocation(this.program, "a_position");
+        this.seedLoc = gl.getAttribLocation(this.program, "a_seed");
+        this.timeLoc = gl.getUniformLocation(this.program, "u_time");
+        this.scrollLoc = gl.getUniformLocation(this.program, "u_scroll");
+        this.resolutionLoc = gl.getUniformLocation(this.program, "u_resolution");
+      }
+
+      shader(type, source) {
+        const gl = this.gl;
+        const shader = gl.createShader(type);
+        gl.shaderSource(shader, source);
+        gl.compileShader(shader);
+        return shader;
+      }
+
+      resize() {
+        const { canvas } = this;
+        const rect = canvas.getBoundingClientRect();
+        canvas.width = Math.floor(rect.width * this.dpr);
+        canvas.height = Math.floor(rect.height * this.dpr);
+        this.gl.viewport(0, 0, canvas.width, canvas.height);
+      }
+
+      createParticles() {
+        const titleTargets = this.createTextTargets([{ text: "StillHere", size: 176, y: 0 }]);
+        const messageTargets = this.createTextTargets([
+          { text: "StillHere", size: 154, y: -0.28 },
+          { text: "工作可以暂停，思路不用重启。", size: 54, y: 0.2 },
+          { text: "AI 工作现场恢复器", size: 34, y: 0.48 }
+        ]);
+        for (let i = 0; i < this.count; i++) {
+          const angle = Math.random() * Math.PI * 2;
+          const radius = Math.pow(Math.random(), 0.34) * 1.92;
+          const x = Math.cos(angle) * radius + (Math.random() - 0.5) * 0.18;
+          const y = Math.sin(angle) * radius * 0.92 + (Math.random() - 0.5) * 0.18;
+          const t = titleTargets[i % titleTargets.length];
+          const f = messageTargets[i % messageTargets.length];
+          this.positions[i * 2] = x;
+          this.positions[i * 2 + 1] = y;
+          this.targets[i * 2] = t[0];
+          this.targets[i * 2 + 1] = t[1];
+          this.finalTargets[i * 2] = f[0];
+          this.finalTargets[i * 2 + 1] = f[1];
+          this.seeds[i * 4] = Math.random();
+          this.seeds[i * 4 + 1] = Math.random();
+          this.seeds[i * 4 + 2] = Math.random();
+          this.seeds[i * 4 + 3] = Math.random();
+        }
+
+        const gl = this.gl;
+        gl.bindBuffer(gl.ARRAY_BUFFER, this.seedBuffer);
+        gl.bufferData(gl.ARRAY_BUFFER, this.seeds, gl.STATIC_DRAW);
+      }
+
+      createTextTargets(lines) {
+        const off = document.createElement("canvas");
+        off.width = 1400;
+        off.height = 520;
+        const ctx = off.getContext("2d");
+        ctx.fillStyle = "#000";
+        ctx.fillRect(0, 0, off.width, off.height);
+        ctx.fillStyle = "#fff";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        for (const line of lines) {
+          ctx.font = `900 ${line.size}px Inter, Arial, sans-serif`;
+          ctx.fillText(line.text, off.width / 2, off.height / 2 + line.y * off.height);
+        }
+
+        const img = ctx.getImageData(0, 0, off.width, off.height).data;
+        const points = [];
+        const step = 4;
+        for (let y = 0; y < off.height; y += step) {
+          for (let x = 0; x < off.width; x += step) {
+            const alpha = img[(y * off.width + x) * 4];
+            if (alpha > 120) {
+              const nx = (x / off.width) * 2 - 1;
+              const ny = -((y / off.height) * 2 - 1);
+              points.push([nx * 1.55, ny * 0.74]);
+            }
+          }
+        }
+        return points.length ? points : [[0, 0]];
+      }
+
+      updateScroll(progress) {
+        this.scroll = clamp(progress, 0, 1);
+      }
+
+      animate() {
+        requestAnimationFrame(() => this.animate());
+        const gl = this.gl;
+        this.time += 0.016;
+        const titleProgress = clamp(this.scroll * 1.55, 0, 1);
+        const messageProgress = clamp((this.scroll - 0.52) / 0.48, 0, 1);
+        const titleEase = titleProgress * titleProgress * (3 - 2 * titleProgress);
+        const messageEase = messageProgress * messageProgress * (3 - 2 * messageProgress);
+        for (let i = 0; i < this.count; i++) {
+          const sx = this.positions[i * 2];
+          const sy = this.positions[i * 2 + 1];
+          const tx = this.targets[i * 2];
+          const ty = this.targets[i * 2 + 1];
+          const fx = this.finalTargets[i * 2];
+          const fy = this.finalTargets[i * 2 + 1];
+          const midX = lerp(sx, tx, titleEase);
+          const midY = lerp(sy, ty, titleEase);
+          this.current[i * 2] = lerp(midX, fx, messageEase);
+          this.current[i * 2 + 1] = lerp(midY, fy, messageEase);
+        }
+
+        gl.enable(gl.BLEND);
+        gl.blendFunc(gl.SRC_ALPHA, gl.ONE);
+        gl.clearColor(0, 0, 0, 0);
+        gl.clear(gl.COLOR_BUFFER_BIT);
+        gl.useProgram(this.program);
+
+        gl.bindBuffer(gl.ARRAY_BUFFER, this.positionBuffer);
+        gl.bufferData(gl.ARRAY_BUFFER, this.current, gl.DYNAMIC_DRAW);
+        gl.enableVertexAttribArray(this.positionLoc);
+        gl.vertexAttribPointer(this.positionLoc, 2, gl.FLOAT, false, 0, 0);
+
+        gl.bindBuffer(gl.ARRAY_BUFFER, this.seedBuffer);
+        gl.enableVertexAttribArray(this.seedLoc);
+        gl.vertexAttribPointer(this.seedLoc, 4, gl.FLOAT, false, 0, 0);
+
+        gl.uniform1f(this.timeLoc, this.time);
+        gl.uniform1f(this.scrollLoc, this.scroll);
+        gl.uniform2f(this.resolutionLoc, this.canvas.width, this.canvas.height);
+        gl.drawArrays(gl.POINTS, 0, this.count);
+      }
+    }
+
+    const hero = document.querySelector(".hero");
+    const particleField = new ParticleField(document.getElementById("particle-canvas"));
+    const parallaxItems = [...document.querySelectorAll(".parallax-item")];
+    const revealSteps = [...document.querySelectorAll(".reveal-step")];
+
+    function onScroll() {
+      const heroRect = hero.getBoundingClientRect();
+      const max = hero.offsetHeight - window.innerHeight;
+      const progress = clamp(-heroRect.top / max, 0, 1);
+      particleField.updateScroll(progress);
+      const photoProgress = clamp((progress - 0.28) / 0.58, 0, 1);
+      const copyProgress = clamp((progress - 0.68) / 0.28, 0, 1);
+      const easedPhoto = photoProgress * photoProgress * (3 - 2 * photoProgress);
+      const easedCopy = copyProgress * copyProgress * (3 - 2 * copyProgress);
+      document.documentElement.style.setProperty("--hero-photo-opacity", easedPhoto.toFixed(3));
+      document.documentElement.style.setProperty("--hero-copy-opacity", easedCopy.toFixed(3));
+
+      for (const item of parallaxItems) {
+        const rect = item.getBoundingClientRect();
+        const center = rect.top + rect.height / 2;
+        const local = clamp((window.innerHeight - center) / window.innerHeight + 0.5, 0, 1);
+        item.style.setProperty("--parallax", (local - 0.5).toFixed(3));
+      }
+
+      for (const step of revealSteps) {
+        const rect = step.getBoundingClientRect();
+        const visible = clamp(1 - Math.abs(rect.top + rect.height / 2 - window.innerHeight / 2) / (window.innerHeight * 0.62), 0, 1);
+        step.style.setProperty("--visible", visible.toFixed(3));
+      }
+    }
+
+    window.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("resize", onScroll);
+    onScroll();
+  </script>
+</body>
+</html>
